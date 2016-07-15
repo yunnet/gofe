@@ -91,7 +91,7 @@ func (fe *SSHFileExplorer) Copy(path []string, newPath string, singleFilename st
 
 func (fe *SSHFileExplorer) Delete(path []string) (err error) {
 	for _, target := range path {
-		err = fe.ExecOnly(fmt.Sprintf("rm --interactive=never -r %S", normalizePath(target)))
+		err = fe.ExecOnly(fmt.Sprintf("rm --interactive=never -r %s", normalizePath(target)))
 	}
 	return err
 }
