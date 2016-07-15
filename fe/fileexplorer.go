@@ -1,7 +1,7 @@
 package fe
 
 import (
-	models "../models"
+	"github.com/md2k/models"
 )
 
 type FileExplorer interface {

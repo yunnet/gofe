@@ -1,9 +1,9 @@
 package main
 
 import (
-	fe "./fe"
-	models "./models"
-	settings "./settings"
+	"github.com/md2k/gofe/fe"
+	"github.com/md2k/gofe/models"
+	"github.com/md2k/gofe/settings"
 	"fmt"
 	"github.com/go-macaron/binding"
 	"github.com/go-macaron/cache"
