@@ -97,62 +97,65 @@ func defaultHandler(ctx *macaron.Context) {
 }
 
 func apiHandler(c *macaron.Context, req models.GenericReq, s SessionInfo) {
-	if req.Action == "list" {
+	switch req.Action {
+	case "list":
 		ls, err := s.FileExplorer.ListDir(req.Path)
 		if err == nil {
 			c.JSON(200, models.ListDirResp{ls})
 		} else {
 			ApiErrorResponse(c, 400, err)
 		}
-	} else if req.Action == "rename" { // path, newPath
+	case "rename":
 		err := s.FileExplorer.Rename(req.Item, req.NewItemPath)
 		if err == nil {
 			ApiSuccessResponse(c, "")
 		} else {
 			ApiErrorResponse(c, 400, err)
 		}
-	} else if req.Action == "move" { // path, newPath
+	case "move":
 		err := s.FileExplorer.Move(req.Items, req.NewPath)
 		if err == nil {
 			ApiSuccessResponse(c, "")
 		} else {
 			ApiErrorResponse(c, 400, err)
 		}
-	} else if req.Action == "copy" { // path, newPath
+	case "copy":
 		err := s.FileExplorer.Copy(req.Items, req.NewPath, req.SingleFilename)
 		if err == nil {
 			ApiSuccessResponse(c, "")
 		} else {
 			ApiErrorResponse(c, 400, err)
 		}
-	} else if req.Action == "remove" { // path
+	case "remove":
 		err := s.FileExplorer.Delete(req.Items)
 		if err == nil {
 			ApiSuccessResponse(c, "")
 		} else {
 			ApiErrorResponse(c, 400, err)
 		}
-	} else if req.Action == "savefile" { // content, path TODO: Seems not exists anymore ????
+	case "savefile":
 		c.JSON(200, DEFAULT_API_ERROR_RESPONSE)
-	} else if req.Action == "edit" { // path
+	case "edit":
 		c.JSON(200, DEFAULT_API_ERROR_RESPONSE)
-	} else if req.Action == "createFolder" { // newPath
+	case "createFolder":
 		err := s.FileExplorer.Mkdir(req.NewPath)
 		if err == nil {
 			ApiSuccessResponse(c, "")
 		} else {
 			ApiErrorResponse(c, 400, err)
 		}
-	} else if req.Action == "changePermissions" { // path, perms, permsCode, recursive
+	case "changePermissions":
 		err := s.FileExplorer.Chmod(req.Items, req.PermsCode, req.Recursive)
 		if err == nil {
 			ApiSuccessResponse(c, "")
 		} else {
 			ApiErrorResponse(c, 400, err)
 		}
-	} else if req.Action == "compress" { // path, destination
+	case "compress":
 		c.JSON(200, DEFAULT_API_ERROR_RESPONSE)
-	} else if req.Action == "extract" { // path, destination, sourceFile
+	case "extract":
+		c.JSON(200, DEFAULT_API_ERROR_RESPONSE)
+	default:
 		c.JSON(200, DEFAULT_API_ERROR_RESPONSE)
 	}
 }
