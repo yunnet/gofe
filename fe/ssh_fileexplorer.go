@@ -60,11 +60,14 @@ func normalizePath(path string) string {
 }
 
 func (fe *SSHFileExplorer) Mkdir(path string) error {
-	return fe.ExecOnly(fmt.Sprintf("mkdir -p %s", normalizePath(path)))
+	return fe.ExecOnly(fmt.Sprintf("mkdir -p \"%s\"", normalizePath(path)))
 }
 
 func (fe *SSHFileExplorer) ListDir(path string) ([]models.ListDirEntry, error) {
-	ls, err := fe.Exec(fmt.Sprintf("ls --time-style=long-iso -l %s", normalizePath(path)))
+	// Most ugliest Fix, but nothing other can be done here to able parse LS in correct way and support files with spaces in names :)
+	// Have another idea, but this is for later TODO
+	ls, err := fe.Exec("ls --time-style=long-iso -1 -q -l --hide-control-chars " + normalizePath(path) + " | awk '{n=split($0,array,\" \")} { for (i = 1; i <= 7; i++) {printf \"%s|\",array[i]}} { for (i = 8; i <= n; i++) {printf \"%s \",array[i]};print \"\"}'")
+	// ls, err := fe.Exec(fmt.Sprintf("ls --time-style=long-iso -l %s", normalizePath(path)))
 	if err != nil {
 		return nil, err
 	}
@@ -72,26 +75,26 @@ func (fe *SSHFileExplorer) ListDir(path string) ([]models.ListDirEntry, error) {
 }
 
 func (fe *SSHFileExplorer) Rename(path string, newPath string) error {
-	return fe.ExecOnly(fmt.Sprintf("mv %s %s", normalizePath(path), normalizePath(newPath)))
+	return fe.ExecOnly(fmt.Sprintf("mv \"%s\" \"%s\"", normalizePath(path), normalizePath(newPath)))
 }
 
 func (fe *SSHFileExplorer) Move(path []string, newPath string) (err error) {
 	for _, target := range path {
-		err = fe.ExecOnly(fmt.Sprintf("mv %s %s", normalizePath(target), normalizePath(newPath)))
+		err = fe.ExecOnly(fmt.Sprintf("mv \"%s\" \"%s\"", normalizePath(target), normalizePath(newPath)))
 	}
 	return err
 }
 
 func (fe *SSHFileExplorer) Copy(path []string, newPath string, singleFilename string) (err error) {
 	for _, target := range path {
-		err = fe.ExecOnly(fmt.Sprintf("cp -r %s %s/%s", normalizePath(target), normalizePath(newPath), singleFilename))
+		err = fe.ExecOnly(fmt.Sprintf("cp -r \"%s\" \"%s/%s\"", normalizePath(target), normalizePath(newPath), singleFilename))
 	}
 	return err
 }
 
 func (fe *SSHFileExplorer) Delete(path []string) (err error) {
 	for _, target := range path {
-		err = fe.ExecOnly(fmt.Sprintf("rm --interactive=never -r %s", normalizePath(target)))
+		err = fe.ExecOnly(fmt.Sprintf("rm --interactive=never -r \"%s\"", normalizePath(target)))
 	}
 	return err
 }
@@ -102,7 +105,7 @@ func (fe *SSHFileExplorer) Chmod(path []string, code string, recursive bool) (er
 		if recursive {
 			recurs = "-R"
 		}
-		err = fe.ExecOnly(fmt.Sprintf("chmod %s %s %s", recurs, code, normalizePath(target)))
+		err = fe.ExecOnly(fmt.Sprintf("chmod %s %s \"%s\"", recurs, code, normalizePath(target)))
 	}
 	return err
 }
@@ -140,9 +143,16 @@ func parseLsOutput(lsout string) []models.ListDirEntry {
 	lines := strings.Split(lsout, "\n")
 	results := []models.ListDirEntry{}
 	for _, line := range lines {
-		//fmt.Println(idx, line)
+		// fmt.Println(idx, line)
 		if len(line) != 0 && !strings.HasPrefix(line, "total") {
-			tokens := strings.Fields(line)
+			// our Dirty LS Fix with AWK return line as follow:
+			// drwxr-xr-x|2|root|root|4096|2016-07-13|17:47|bin
+			tmp_tokens := strings.SplitN(line, "|", 8)
+			var tokens []string
+			for _, token := range tmp_tokens {
+				tokens = append(tokens, strings.TrimSpace(token))
+			}
+			// fmt.Println(tokens)
 			if len(tokens) >= 8 {
 				ftype := "file"
 				if strings.HasPrefix(tokens[0], "d") {

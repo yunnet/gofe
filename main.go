@@ -1,7 +1,11 @@
 package main
 
 import (
+	"bytes"
+	"fmt"
+	"io"
 	"log"
+	"net/http"
 	"os"
 	"runtime"
 	"runtime/debug"
@@ -71,7 +75,7 @@ func startServer() {
 	m.Get("/", mainHandler)
 	m.Get("/login", loginHandler)
 	m.Post("/api/download", defaultHandler)
-	m.Post("/api/upload", defaultHandler)
+	m.Post("/api/upload", uploadHandler)
 
 	if settings.Server.Type == "http" {
 		bind := strings.Split(settings.Server.Bind, ":")
@@ -162,6 +166,82 @@ func apiHandler(c *macaron.Context, req models.GenericReq, s SessionInfo) {
 
 func IsApiPath(url string) bool {
 	return strings.HasPrefix(url, "/api/") || strings.HasPrefix(url, "/bridges/php/handler.php")
+}
+
+func uploadHandler(c *macaron.Context, req *http.Request, s SessionInfo) {
+
+	switch req.Method {
+	case "POST":
+		// Method when it fills memory buffer and rest save to temporary files on disk before move to destination
+		// Not best way for handling large files
+		// err := req.ParseMultipartForm(100000)
+		// if err != nil {
+		// 	c.JSON(200, models.GenericResp{
+		// 		models.GenericRespBody{false, err.Error()},
+		// 	})
+		// }
+		// m := req.MultipartForm
+		// fmt.Println(m)
+		// utils.Dump(m)
+		// destination := m.Value["destination"][0]
+		// files := m.File
+		// fmt.Println(destination)
+		// utils.Dump(files)
+		// for i, v := range files {
+		// 	fmt.Println(i)
+		// utils.Dump(v)
+		// }
+
+		destination := ""
+
+		reader, err := req.MultipartReader()
+		if err != nil {
+			c.JSON(200, models.GenericResp{
+				models.GenericRespBody{false, err.Error()},
+			})
+		}
+		for {
+			part, err := reader.NextPart()
+			if err == io.EOF {
+				break
+			}
+
+			// fmt.Println(part.FormName())
+			if part.FormName() == "destination" {
+				buf := new(bytes.Buffer)
+				buf.ReadFrom(part)
+				destination = buf.String()
+				// fmt.Println(destination)
+			}
+
+			if part.FileName() == "" {
+				continue
+			}
+
+			if len(destination) == 0 {
+				continue
+			}
+
+			dst, err := os.Create(fmt.Sprintf("%s/%s", destination, part.FileName()))
+			defer dst.Close()
+			if err != nil {
+				c.JSON(200, models.GenericResp{
+					models.GenericRespBody{false, err.Error()},
+				})
+			}
+
+			if _, err := io.Copy(dst, part); err != nil {
+				c.JSON(200, models.GenericResp{
+					models.GenericRespBody{false, err.Error()},
+				})
+			}
+		}
+		ApiSuccessResponse(c, "")
+
+	default:
+		c.JSON(200, DEFAULT_API_ERROR_RESPONSE)
+	}
+
 }
 
 func Contexter() macaron.Handler {
