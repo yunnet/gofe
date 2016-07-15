@@ -1,17 +1,18 @@
 package main
 
 import (
-	"github.com/md2k/gofe/fe"
-	"github.com/md2k/gofe/models"
-	"github.com/md2k/gofe/settings"
 	"fmt"
-	"github.com/go-macaron/binding"
-	"github.com/go-macaron/cache"
-	"github.com/go-macaron/session"
-	"gopkg.in/macaron.v1"
 	"log"
 	"runtime"
 	"strings"
+
+	"github.com/go-macaron/binding"
+	"github.com/go-macaron/cache"
+	"github.com/go-macaron/session"
+	"github.com/md2k/gofe/fe"
+	"github.com/md2k/gofe/models"
+	"github.com/md2k/gofe/settings"
+	macaron "gopkg.in/macaron.v1"
 )
 
 var DEFAULT_API_ERROR_RESPONSE = models.GenericResp{
@@ -83,56 +84,56 @@ func defaultHandler(ctx *macaron.Context) {
 	ctx.JSON(200, DEFAULT_API_ERROR_RESPONSE)
 }
 
-func apiHandler(c *macaron.Context, json models.GenericReq, sessionInfo SessionInfo) {
-	if json.Params.Mode == "list" {
-		ls, err := sessionInfo.FileExplorer.ListDir(json.Params.Path)
+func apiHandler(c *macaron.Context, req models.GenericReq, s SessionInfo) {
+	if req.Action == "list" {
+		ls, err := s.FileExplorer.ListDir(req.Path)
 		if err == nil {
 			c.JSON(200, models.ListDirResp{ls})
 		} else {
 			ApiErrorResponse(c, 400, err)
 		}
-	} else if json.Params.Mode == "rename" { // path, newPath
-		err := sessionInfo.FileExplorer.Move(json.Params.Path, json.Params.NewPath)
+	} else if req.Action == "rename" { // path, newPath
+		err := s.FileExplorer.Move(req.Path, req.NewPath)
 		if err == nil {
 			ApiSuccessResponse(c, "")
 		} else {
 			ApiErrorResponse(c, 400, err)
 		}
-	} else if json.Params.Mode == "copy" { // path, newPath
-		err := sessionInfo.FileExplorer.Copy(json.Params.Path, json.Params.NewPath)
+	} else if req.Action == "copy" { // path, newPath
+		err := s.FileExplorer.Copy(req.Path, req.NewPath)
 		if err == nil {
 			ApiSuccessResponse(c, "")
 		} else {
 			ApiErrorResponse(c, 400, err)
 		}
-	} else if json.Params.Mode == "delete" { // path
-		err := sessionInfo.FileExplorer.Delete(json.Params.Path)
+	} else if req.Action == "delete" { // path
+		err := s.FileExplorer.Delete(req.Path)
 		if err == nil {
 			ApiSuccessResponse(c, "")
 		} else {
 			ApiErrorResponse(c, 400, err)
 		}
-	} else if json.Params.Mode == "savefile" { // content, path
+	} else if req.Action == "savefile" { // content, path
 		c.JSON(200, DEFAULT_API_ERROR_RESPONSE)
-	} else if json.Params.Mode == "editfile" { // path
+	} else if req.Action == "editfile" { // path
 		c.JSON(200, DEFAULT_API_ERROR_RESPONSE)
-	} else if json.Params.Mode == "addfolder" { // name, path
-		err := sessionInfo.FileExplorer.Mkdir(json.Params.Path, json.Params.Name)
+	} else if req.Action == "addfolder" { // name, path
+		err := s.FileExplorer.Mkdir(req.Path, req.Name)
 		if err == nil {
 			ApiSuccessResponse(c, "")
 		} else {
 			ApiErrorResponse(c, 400, err)
 		}
-	} else if json.Params.Mode == "changepermissions" { // path, perms, permsCode, recursive
-		err := sessionInfo.FileExplorer.Chmod(json.Params.Path, json.Params.Perms)
+	} else if req.Action == "changepermissions" { // path, perms, permsCode, recursive
+		err := s.FileExplorer.Chmod(req.Path, req.Perms)
 		if err == nil {
 			ApiSuccessResponse(c, "")
 		} else {
 			ApiErrorResponse(c, 400, err)
 		}
-	} else if json.Params.Mode == "compress" { // path, destination
+	} else if req.Action == "compress" { // path, destination
 		c.JSON(200, DEFAULT_API_ERROR_RESPONSE)
-	} else if json.Params.Mode == "extract" { // path, destination, sourceFile
+	} else if req.Action == "extract" { // path, destination, sourceFile
 		c.JSON(200, DEFAULT_API_ERROR_RESPONSE)
 	}
 }

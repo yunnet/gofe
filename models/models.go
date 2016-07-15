@@ -1,10 +1,7 @@
 package models
 
 type GenericReq struct {
-	Params GenericParams `json:"params" binding:"Required"`
-}
-type GenericParams struct {
-	Mode             string `json:"mode" binding:"Required"`
+	Action           string `json:"action" binding:"Required"`
 	OnlyFoldreferers bool   `json:"onlyFolders"` // list
 	Path             string `json:"path"`        // ALL
 	NewPath          string `json:"newPath"`     // move/rename, copy
