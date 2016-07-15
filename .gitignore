@@ -24,7 +24,7 @@ _testmain.go
 *.prof
 
 .project
-gofe
+gofe*
 static/
 tmp/
 
