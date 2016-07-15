@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"runtime"
 	"runtime/debug"
 	"strings"
+	"time"
 
 	"github.com/go-macaron/binding"
 	"github.com/go-macaron/cache"
@@ -74,7 +76,7 @@ func startServer() {
 	m.Post("/bridges/php/handler.php", binding.Bind(models.GenericReq{}), apiHandler)
 	m.Get("/", mainHandler)
 	m.Get("/login", loginHandler)
-	m.Post("/api/download", defaultHandler)
+	m.Get("/api/download", downloadHandler)
 	m.Post("/api/upload", uploadHandler)
 
 	if settings.Server.Type == "http" {
@@ -242,6 +244,33 @@ func uploadHandler(c *macaron.Context, req *http.Request, s SessionInfo) {
 		c.JSON(200, DEFAULT_API_ERROR_RESPONSE)
 	}
 
+}
+
+func downloadHandler(c *macaron.Context, req *http.Request, s SessionInfo) {
+	switch req.Method {
+	case "GET":
+		params := req.URL.Query()
+
+		fileinfo, err := os.Stat(params.Get("path"))
+		if err != nil {
+			c.JSON(200, models.GenericResp{
+				models.GenericRespBody{false, err.Error()},
+			})
+		}
+		data, err := ioutil.ReadFile(params.Get("path"))
+		if err != nil {
+			c.JSON(200, models.GenericResp{
+				models.GenericRespBody{false, err.Error()},
+			})
+		}
+
+		c.Header().Set("content-disposition", fmt.Sprintf("attachment; filename=\"%s\"", fileinfo.Name()))
+		http.ServeContent(c, req, fileinfo.Name(), time.Now(), bytes.NewReader(data))
+
+	default:
+		c.JSON(200, DEFAULT_API_ERROR_RESPONSE)
+	}
+	c.JSON(200, DEFAULT_API_ERROR_RESPONSE)
 }
 
 func Contexter() macaron.Handler {
