@@ -1,12 +1,18 @@
+// TODO:  Better handling of errors from SSH Back-end executions.
+// ExecOnly() / Exec()
+// 'Process exited with status 1' Not very informative :)
+
 package fe
 
 import (
-	"github.com/md2k/gofe/models"
-	"golang.org/x/crypto/ssh"
+	"fmt"
 	"log"
 	"net"
 	"strings"
 	"time"
+
+	"github.com/md2k/gofe/models"
+	"golang.org/x/crypto/ssh"
 )
 
 const DefaultTimeout = 30 * time.Second
@@ -53,32 +59,52 @@ func normalizePath(path string) string {
 	return path
 }
 
-func (fe *SSHFileExplorer) Mkdir(path string, name string) error {
-	return fe.ExecOnly("mkdir " + normalizePath(path) + "/" + name)
+func (fe *SSHFileExplorer) Mkdir(path string) error {
+	return fe.ExecOnly(fmt.Sprintf("mkdir -p %s", normalizePath(path)))
 }
 
 func (fe *SSHFileExplorer) ListDir(path string) ([]models.ListDirEntry, error) {
-	ls, err := fe.Exec("ls --time-style=long-iso -l " + normalizePath(path))
+	ls, err := fe.Exec(fmt.Sprintf("ls --time-style=long-iso -l %s", normalizePath(path)))
 	if err != nil {
 		return nil, err
 	}
 	return parseLsOutput(string(ls)), nil
 }
 
-func (fe *SSHFileExplorer) Move(path string, newPath string) error {
-	return fe.ExecOnly("mv " + normalizePath(path) + " " + normalizePath(newPath))
+func (fe *SSHFileExplorer) Rename(path string, newPath string) error {
+	return fe.ExecOnly(fmt.Sprintf("mv %s %s", normalizePath(path), normalizePath(newPath)))
 }
 
-func (fe *SSHFileExplorer) Copy(path string, newPath string) error {
-	return fe.ExecOnly("cp -r " + normalizePath(path) + " " + normalizePath(newPath))
+func (fe *SSHFileExplorer) Move(path []string, newPath string) (err error) {
+	for _, target := range path {
+		err = fe.ExecOnly(fmt.Sprintf("mv %s %s", normalizePath(target), normalizePath(newPath)))
+	}
+	return err
 }
 
-func (fe *SSHFileExplorer) Delete(path string) error {
-	return fe.ExecOnly("rm -r " + normalizePath(path))
+func (fe *SSHFileExplorer) Copy(path []string, newPath string, singleFilename string) (err error) {
+	for _, target := range path {
+		err = fe.ExecOnly(fmt.Sprintf("cp -r %s %s/%s", normalizePath(target), normalizePath(newPath), singleFilename))
+	}
+	return err
 }
 
-func (fe *SSHFileExplorer) Chmod(path string, code string) error {
-	return fe.ExecOnly("chmod " + code + " " + normalizePath(path))
+func (fe *SSHFileExplorer) Delete(path []string) (err error) {
+	for _, target := range path {
+		err = fe.ExecOnly(fmt.Sprintf("rm --interactive=never -r %S", normalizePath(target)))
+	}
+	return err
+}
+
+func (fe *SSHFileExplorer) Chmod(path []string, code string, recursive bool) (err error) {
+	for _, target := range path {
+		recurs := ""
+		if recursive {
+			recurs = "-R"
+		}
+		err = fe.ExecOnly(fmt.Sprintf("chmod %s %s %s", recurs, code, normalizePath(target)))
+	}
+	return err
 }
 
 func (fe *SSHFileExplorer) Close() error {
@@ -105,7 +131,7 @@ func (fe *SSHFileExplorer) ExecOnly(cmd string) error {
 	defer session.Close()
 	_, err1 := session.CombinedOutput(cmd)
 	if err1 != nil {
-		return err // + " - " + string(out)
+		return err1 // + " - " + string(out)
 	}
 	return nil
 }

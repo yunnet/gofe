@@ -1,9 +1,10 @@
 package main
 
 import (
-	"fmt"
 	"log"
+	"os"
 	"runtime"
+	"runtime/debug"
 	"strings"
 
 	"github.com/go-macaron/binding"
@@ -32,9 +33,20 @@ func main() {
 }
 
 func configRuntime() {
-	numCPU := runtime.NumCPU()
-	runtime.GOMAXPROCS(numCPU)
-	fmt.Printf("Running with %d CPUs\n", numCPU)
+	if os.Getenv("GOGC") == "" {
+		log.Printf("Setting default GOGC=%d", 800)
+		debug.SetGCPercent(800)
+	} else {
+		log.Printf("Using GOGC=%s from env.", os.Getenv("GOGC"))
+	}
+
+	if os.Getenv("GOMAXPROCS") == "" {
+		numCPU := runtime.NumCPU()
+		log.Printf("Setting default GOMAXPROCS=%d.", numCPU)
+		runtime.GOMAXPROCS(numCPU)
+	} else {
+		log.Printf("Using GOMAXPROCS=%s from env", os.Getenv("GOMAXPROCS"))
+	}
 }
 
 func startServer() {
@@ -93,39 +105,46 @@ func apiHandler(c *macaron.Context, req models.GenericReq, s SessionInfo) {
 			ApiErrorResponse(c, 400, err)
 		}
 	} else if req.Action == "rename" { // path, newPath
-		err := s.FileExplorer.Move(req.Path, req.NewPath)
+		err := s.FileExplorer.Rename(req.Item, req.NewItemPath)
+		if err == nil {
+			ApiSuccessResponse(c, "")
+		} else {
+			ApiErrorResponse(c, 400, err)
+		}
+	} else if req.Action == "move" { // path, newPath
+		err := s.FileExplorer.Move(req.Items, req.NewPath)
 		if err == nil {
 			ApiSuccessResponse(c, "")
 		} else {
 			ApiErrorResponse(c, 400, err)
 		}
 	} else if req.Action == "copy" { // path, newPath
-		err := s.FileExplorer.Copy(req.Path, req.NewPath)
+		err := s.FileExplorer.Copy(req.Items, req.NewPath, req.SingleFilename)
 		if err == nil {
 			ApiSuccessResponse(c, "")
 		} else {
 			ApiErrorResponse(c, 400, err)
 		}
-	} else if req.Action == "delete" { // path
-		err := s.FileExplorer.Delete(req.Path)
+	} else if req.Action == "remove" { // path
+		err := s.FileExplorer.Delete(req.Items)
 		if err == nil {
 			ApiSuccessResponse(c, "")
 		} else {
 			ApiErrorResponse(c, 400, err)
 		}
-	} else if req.Action == "savefile" { // content, path
+	} else if req.Action == "savefile" { // content, path TODO: Seems not exists anymore ????
 		c.JSON(200, DEFAULT_API_ERROR_RESPONSE)
-	} else if req.Action == "editfile" { // path
+	} else if req.Action == "edit" { // path
 		c.JSON(200, DEFAULT_API_ERROR_RESPONSE)
-	} else if req.Action == "addfolder" { // name, path
-		err := s.FileExplorer.Mkdir(req.Path, req.Name)
+	} else if req.Action == "createFolder" { // newPath
+		err := s.FileExplorer.Mkdir(req.NewPath)
 		if err == nil {
 			ApiSuccessResponse(c, "")
 		} else {
 			ApiErrorResponse(c, 400, err)
 		}
-	} else if req.Action == "changepermissions" { // path, perms, permsCode, recursive
-		err := s.FileExplorer.Chmod(req.Path, req.Perms)
+	} else if req.Action == "changePermissions" { // path, perms, permsCode, recursive
+		err := s.FileExplorer.Chmod(req.Items, req.PermsCode, req.Recursive)
 		if err == nil {
 			ApiSuccessResponse(c, "")
 		} else {

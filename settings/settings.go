@@ -1,8 +1,9 @@
 package settings
 
 import (
-	"gopkg.in/ini.v1"
 	"log"
+
+	ini "gopkg.in/ini.v1"
 )
 
 var (

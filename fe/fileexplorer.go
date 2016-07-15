@@ -7,10 +7,11 @@ import (
 type FileExplorer interface {
 	Init() error
 	ListDir(path string) ([]models.ListDirEntry, error)
-	Move(path string, newPath string) error
-	Copy(path string, newPath string) error
-	Delete(path string) error
-	Chmod(path string, code string) error
-	Mkdir(path string, name string) error
+	Rename(path string, newPath string) error
+	Move(path []string, newPath string) (err error)
+	Copy(path []string, newPath string, singleFilename string) (err error)
+	Delete(path []string) (err error)
+	Chmod(path []string, code string, recursive bool) (err error)
+	Mkdir(path string) error
 	Close() error
 }
