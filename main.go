@@ -23,7 +23,7 @@ import (
 )
 
 var DEFAULT_API_ERROR_RESPONSE = models.GenericResp{
-	models.GenericRespBody{false, "Not Supported"},
+	models.GenericRespBody{false, "Not Supported by current backend."},
 }
 
 type SessionInfo struct {
@@ -139,10 +139,6 @@ func apiHandler(c *macaron.Context, req models.GenericReq, s SessionInfo) {
 		} else {
 			ApiErrorResponse(c, 400, err)
 		}
-	case "savefile":
-		c.JSON(200, DEFAULT_API_ERROR_RESPONSE)
-	case "edit":
-		c.JSON(200, DEFAULT_API_ERROR_RESPONSE)
 	case "createFolder":
 		err := s.FileExplorer.Mkdir(req.NewPath)
 		if err == nil {
@@ -224,19 +220,26 @@ func uploadHandler(c *macaron.Context, req *http.Request, s SessionInfo) {
 				continue
 			}
 
-			dst, err := os.Create(fmt.Sprintf("%s/%s", destination, part.FileName()))
-			defer dst.Close()
+			err = s.FileExplorer.UploadFile(destination, part)
 			if err != nil {
 				c.JSON(200, models.GenericResp{
 					models.GenericRespBody{false, err.Error()},
 				})
 			}
 
-			if _, err := io.Copy(dst, part); err != nil {
-				c.JSON(200, models.GenericResp{
-					models.GenericRespBody{false, err.Error()},
-				})
-			}
+			// dst, err := os.Create(fmt.Sprintf("%s/%s", destination, part.FileName()))
+			// defer dst.Close()
+			// if err != nil {
+			// 	c.JSON(200, models.GenericResp{
+			// 		models.GenericRespBody{false, err.Error()},
+			// 	})
+			// }
+
+			// if _, err := io.Copy(dst, part); err != nil {
+			// 	c.JSON(200, models.GenericResp{
+			// 		models.GenericRespBody{false, err.Error()},
+			// 	})
+			// }
 		}
 		ApiSuccessResponse(c, "")
 

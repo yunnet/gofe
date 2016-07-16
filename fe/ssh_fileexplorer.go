@@ -6,7 +6,9 @@ package fe
 
 import (
 	"fmt"
+	"io"
 	"log"
+	"mime/multipart"
 	"net"
 	"strings"
 	"time"
@@ -107,6 +109,48 @@ func (fe *SSHFileExplorer) Chmod(path []string, code string, recursive bool) (er
 		}
 		err = fe.ExecOnly(fmt.Sprintf("chmod %s %s \"%s\"", recurs, code, normalizePath(target)))
 	}
+	return err
+}
+
+func (fe *SSHFileExplorer) UploadFile(destination string, part *multipart.Part) (err error) {
+	// Write directly to Disk
+	// dst, err := os.Create(fmt.Sprintf("%s/%s", destination, part.FileName()))
+	// defer dst.Close()
+	// if err != nil {
+	// 	return err
+	// }
+
+	// if _, err := io.Copy(dst, part); err != nil {
+	// 	return err
+	// }
+	// err = fe.ExecOnly(fmt.Sprintf("chmod 664 \"%s/%s\"", , destination, normalizePath(target)))
+	// return nil
+
+	// Write over SSH StdIn Pipe
+	session, err := fe.client.NewSession()
+	if err != nil {
+		return err
+	}
+	// defer session.Close()
+
+	input, err := session.StdinPipe()
+	if err != nil {
+		return err
+	}
+
+	// Open cat stdin input remotely
+	err = session.Start(fmt.Sprintf("cat - > \"%s/%s\"", destination, part.FileName()))
+	if err != nil {
+		return err
+	}
+
+	// Write to Session's Stdin
+	if _, err := io.Copy(input, part); err != nil {
+		return err
+	}
+	// Close on finish (Guess it is better to send signal , so for TODO)
+	session.Close()
+
 	return err
 }
 

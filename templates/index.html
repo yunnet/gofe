@@ -26,13 +26,22 @@
         uploadUrl: "/api/upload",
         downloadFileUrl: "/api/download",
         allowedActions: angular.extend(defaults.allowedActions, {
-          edit: false,
-          compress: false,
-          compressChooseName: false,
-          extract: false,
+          upload: true,
+          rename: true,
+          move: true,
+          copy: true,
+          edit: true,
+          changePermissions: true,
+          compress: true,
+          compressChooseName: true,
+          extract: true,
           download: true,
-          preview: false,
-          upload: true
+          downloadMultiple: true,
+          preview: true,
+          remove: true,
+          createFolder: true,
+          pickFiles: false,
+          pickFolders: false
         }),
         tplPath: "static/templates"
       });
