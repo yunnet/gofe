@@ -16,6 +16,7 @@ import (
 	"github.com/go-macaron/binding"
 	"github.com/go-macaron/cache"
 	"github.com/go-macaron/session"
+	"github.com/martini-contrib/cors"
 	"github.com/md2k/gofe/fe"
 	"github.com/md2k/gofe/models"
 	"github.com/md2k/gofe/settings"
@@ -68,6 +69,13 @@ func startServer() {
 		}, settings.Server.Statics...))
 	}
 	m.Use(cache.Cacher())
+	m.Use(cors.Allow(&cors.Options{
+		AllowOrigins:     settings.Server.CorsOrigins,
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE"},
+		AllowHeaders:     []string{"Origin", "X-Requested-With", "Content-Type"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+	}))
 	m.Use(session.Sessioner())
 	m.Use(macaron.Renderer())
 	m.Use(Contexter())
@@ -87,6 +95,8 @@ func startServer() {
 		if len(bind) == 2 {
 			m.Run(bind[0], bind[1])
 		}
+	} else if settings.Server.Type == "https" {
+		log.Fatal(http.ListenAndServeTLS(settings.Server.Bind, settings.Server.SSLCert, settings.Server.SSLKey, m))
 	}
 }
 

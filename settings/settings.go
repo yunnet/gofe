@@ -12,9 +12,12 @@ var (
 		Host string
 	}
 	Server struct {
-		Type    string
-		Bind    string
-		Statics []string
+		Type        string
+		Bind        string
+		CorsOrigins []string
+		Statics     []string
+		SSLCert     string
+		SSLKey      string
 	}
 )
 
@@ -38,4 +41,7 @@ func Load() {
 	server := Cfg.Section("server." + Server.Type)
 	Server.Bind = server.Key("BIND").MustString("localhost:4000")
 	Server.Statics = server.Key("STATICS").Strings(",")
+	Server.SSLCert = server.Key("SSLCERT").String()
+	Server.SSLKey = server.Key("SSLKEY").String()
+	Server.CorsOrigins = server.Key("CORSORIGINS").Strings(",")
 }
