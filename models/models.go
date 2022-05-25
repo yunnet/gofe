@@ -7,7 +7,7 @@ type GenericReq struct {
 	Items            []string `json:"items"`          // API v1.5+ List of Items for Copy/Move/Remove/changePermissions/compress/downloadMultiple
 	Item             string   `json:"item"`           // API v1.5+ Rename
 	NewPath          string   `json:"newPath"`        // move/rename, copy
-	NewItemPath      string   `json:newItemPath`      // API v1.5+ Reanme Action
+	NewItemPath      string   `json:"newItemPath"`    // API v1.5+ Reanme Action
 	Content          string   `json:"content"`        // edit
 	SingleFilename   string   `json:"singleFilename"` // API v1.5+ Copy
 	Perms            string   `json:"perms"`          // changepermissions

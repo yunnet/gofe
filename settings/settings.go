@@ -3,7 +3,7 @@ package settings
 import (
 	"log"
 
-	ini "gopkg.in/ini.v1"
+	"gopkg.in/ini.v1"
 )
 
 var (

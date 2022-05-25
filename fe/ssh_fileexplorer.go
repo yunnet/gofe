@@ -6,14 +6,16 @@ package fe
 
 import (
 	"fmt"
+	"gofe/models"
 	"io"
+	"io/ioutil"
 	"log"
 	"mime/multipart"
 	"net"
 	"strings"
 	"time"
 
-	"github.com/md2k/gofe/models"
+	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -31,25 +33,29 @@ func NewSSHFileExplorer(host string, user string, password string) *SSHFileExplo
 	return &SSHFileExplorer{Host: host, User: user, Password: password}
 }
 
-func (fe *SSHFileExplorer) Init() error {
+func (c *SSHFileExplorer) Init() error {
 	sshConfig := &ssh.ClientConfig{
-		User: fe.User,
+		User: c.User,
 		Auth: []ssh.AuthMethod{
-			ssh.Password(fe.Password),
+			ssh.Password(c.Password),
+		},
+		Timeout: 30 * time.Second,
+		HostKeyCallback: func(hostname string, remote net.Addr, key ssh.PublicKey) error {
+			return nil
 		},
 	}
 
-	conn, err := net.DialTimeout("tcp", fe.Host, DefaultTimeout)
+	conn, err := net.DialTimeout("tcp", c.Host, DefaultTimeout)
 	if err != nil {
 		return err
 	}
-	sshConn, chans, reqs, err := ssh.NewClientConn(conn, fe.Host, sshConfig)
+	sshConn, chans, reqs, err := ssh.NewClientConn(conn, c.Host, sshConfig)
 	if err != nil {
 		return err
 	}
 	client := ssh.NewClient(sshConn, chans, reqs)
 
-	fe.client = client
+	c.client = client
 
 	return nil
 }
@@ -61,73 +67,85 @@ func normalizePath(path string) string {
 	return path
 }
 
-func (fe *SSHFileExplorer) Mkdir(path string) error {
-	return fe.ExecOnly(fmt.Sprintf("mkdir -p \"%s\"", normalizePath(path)))
+func (c *SSHFileExplorer) Mkdir(path string) error {
+	return c.ExecOnly(fmt.Sprintf("mkdir -p \"%s\"", normalizePath(path)))
 }
 
-func (fe *SSHFileExplorer) ListDir(path string) ([]models.ListDirEntry, error) {
+func (c *SSHFileExplorer) ListDir(path string) ([]models.ListDirEntry, error) {
 	// Most ugliest Fix, but nothing other can be done here to able parse LS in correct way and support files with spaces in names :)
 	// Have another idea, but this is for later TODO
-	ls, err := fe.Exec("ls --time-style=long-iso -1 -q -l --hide-control-chars " + normalizePath(path) + " | awk '{n=split($0,array,\" \")} { for (i = 1; i <= 7; i++) {printf \"%s|\",array[i]}} { for (i = 8; i <= n; i++) {printf \"%s \",array[i]};print \"\"}'")
-	// ls, err := fe.Exec(fmt.Sprintf("ls --time-style=long-iso -l %s", normalizePath(path)))
+	ls, err := c.Exec("ls --time-style=long-iso -1 -q -l --hide-control-chars " + normalizePath(path) + " | awk '{n=split($0,array,\" \")} { for (i = 1; i <= 7; i++) {printf \"%s|\",array[i]}} { for (i = 8; i <= n; i++) {printf \"%s \",array[i]};print \"\"}'")
+	// ls, err := c.Exec(fmt.Sprintf("ls --time-style=long-iso -l %s", normalizePath(path)))
 	if err != nil {
 		return nil, err
 	}
 	return parseLsOutput(string(ls)), nil
 }
 
-func (fe *SSHFileExplorer) Rename(path string, newPath string) error {
-	return fe.ExecOnly(fmt.Sprintf("mv \"%s\" \"%s\"", normalizePath(path), normalizePath(newPath)))
+func (c *SSHFileExplorer) Rename(path string, newPath string) error {
+	return c.ExecOnly(fmt.Sprintf("mv \"%s\" \"%s\"", normalizePath(path), normalizePath(newPath)))
 }
 
-func (fe *SSHFileExplorer) Move(path []string, newPath string) (err error) {
+func (c *SSHFileExplorer) Move(path []string, newPath string) (err error) {
 	for _, target := range path {
-		err = fe.ExecOnly(fmt.Sprintf("mv \"%s\" \"%s\"", normalizePath(target), normalizePath(newPath)))
+		err = c.ExecOnly(fmt.Sprintf("mv \"%s\" \"%s\"", normalizePath(target), normalizePath(newPath)))
 	}
 	return err
 }
 
-func (fe *SSHFileExplorer) Copy(path []string, newPath string, singleFilename string) (err error) {
+func (c *SSHFileExplorer) Copy(path []string, newPath string, singleFilename string) (err error) {
 	for _, target := range path {
-		err = fe.ExecOnly(fmt.Sprintf("cp -r \"%s\" \"%s/%s\"", normalizePath(target), normalizePath(newPath), singleFilename))
+		err = c.ExecOnly(fmt.Sprintf("cp -r \"%s\" \"%s/%s\"", normalizePath(target), normalizePath(newPath), singleFilename))
 	}
 	return err
 }
 
-func (fe *SSHFileExplorer) Delete(path []string) (err error) {
+func (c *SSHFileExplorer) Delete(path []string) (err error) {
 	for _, target := range path {
-		err = fe.ExecOnly(fmt.Sprintf("rm --interactive=never -r \"%s\"", normalizePath(target)))
+		err = c.ExecOnly(fmt.Sprintf("rm --interactive=never -r \"%s\"", normalizePath(target)))
 	}
 	return err
 }
 
-func (fe *SSHFileExplorer) Chmod(path []string, code string, recursive bool) (err error) {
+func (c *SSHFileExplorer) Chmod(path []string, code string, recursive bool) (err error) {
 	for _, target := range path {
 		recurs := ""
 		if recursive {
 			recurs = "-R"
 		}
-		err = fe.ExecOnly(fmt.Sprintf("chmod %s %s \"%s\"", recurs, code, normalizePath(target)))
+		err = c.ExecOnly(fmt.Sprintf("chmod %s %s \"%s\"", recurs, code, normalizePath(target)))
 	}
 	return err
 }
 
-func (fe *SSHFileExplorer) UploadFile(destination string, part *multipart.Part) (err error) {
-	// Write directly to Disk
-	// dst, err := os.Create(fmt.Sprintf("%s/%s", destination, part.FileName()))
-	// defer dst.Close()
-	// if err != nil {
-	// 	return err
-	// }
+func (c *SSHFileExplorer) DownloadFile(srcPath string) ([]byte, error) {
+	sftpClient, err := sftp.NewClient(c.client)
+	if err != nil {
+		return nil, err
+	}
+	defer sftpClient.Close()
 
-	// if _, err := io.Copy(dst, part); err != nil {
-	// 	return err
-	// }
-	// err = fe.ExecOnly(fmt.Sprintf("chmod 664 \"%s/%s\"", , destination, normalizePath(target)))
-	// return nil
+	fileInfo, err := sftpClient.Stat(srcPath)
+	if err != nil {
+		return nil, err
+	}
 
+	if fileInfo.IsDir() {
+		return nil, fmt.Errorf("%s is not a file", srcPath)
+	}
+
+	fr, err := sftpClient.Open(srcPath)
+	if err != nil {
+		return nil, err
+	}
+	defer fr.Close()
+
+	return ioutil.ReadAll(fr)
+}
+
+func (c *SSHFileExplorer) UploadFile(destination string, part *multipart.Part) (err error) {
 	// Write over SSH StdIn Pipe
-	session, err := fe.client.NewSession()
+	session, err := c.client.NewSession()
 	if err != nil {
 		return err
 	}
@@ -154,14 +172,14 @@ func (fe *SSHFileExplorer) UploadFile(destination string, part *multipart.Part) 
 	return err
 }
 
-func (fe *SSHFileExplorer) Close() error {
-	return fe.client.Close()
+func (c *SSHFileExplorer) Close() error {
+	return c.client.Close()
 }
 
 // Execute cmd on the remote host and return stderr and stdout
-func (fe *SSHFileExplorer) Exec(cmd string) ([]byte, error) {
+func (c *SSHFileExplorer) Exec(cmd string) ([]byte, error) {
 	log.Println(cmd)
-	session, err := fe.client.NewSession()
+	session, err := c.client.NewSession()
 	if err != nil {
 		return nil, err
 	}
@@ -169,9 +187,9 @@ func (fe *SSHFileExplorer) Exec(cmd string) ([]byte, error) {
 	return session.CombinedOutput(cmd)
 }
 
-func (fe *SSHFileExplorer) ExecOnly(cmd string) error {
+func (c *SSHFileExplorer) ExecOnly(cmd string) error {
 	log.Println(cmd)
-	session, err := fe.client.NewSession()
+	session, err := c.client.NewSession()
 	if err != nil {
 		return err
 	}
@@ -185,25 +203,44 @@ func (fe *SSHFileExplorer) ExecOnly(cmd string) error {
 
 func parseLsOutput(lsout string) []models.ListDirEntry {
 	lines := strings.Split(lsout, "\n")
-	results := []models.ListDirEntry{}
+	var results []models.ListDirEntry
+
 	for _, line := range lines {
+		if len(line) == 0 {
+			continue
+		}
+		if strings.HasPrefix(line, "total") {
+			continue
+		}
+
+		if strings.HasPrefix(line, "总用量") {
+			continue
+		}
+
+		// our Dirty LS Fix with AWK return line as follow:
+		// drwxr-xr-x|2|root|root|4096|2016-07-13|17:47|bin
+		tmpTokens := strings.SplitN(line, "|", 8)
+		var tokens []string
+		for _, token := range tmpTokens {
+			tokens = append(tokens, strings.TrimSpace(token))
+		}
 		// fmt.Println(idx, line)
-		if len(line) != 0 && !strings.HasPrefix(line, "total") {
-			// our Dirty LS Fix with AWK return line as follow:
-			// drwxr-xr-x|2|root|root|4096|2016-07-13|17:47|bin
-			tmp_tokens := strings.SplitN(line, "|", 8)
-			var tokens []string
-			for _, token := range tmp_tokens {
-				tokens = append(tokens, strings.TrimSpace(token))
+		// fmt.Println(tokens)
+		if len(tokens) >= 8 {
+			ftype := "file"
+			if strings.HasPrefix(tokens[0], "d") {
+				ftype = "dir"
 			}
-			// fmt.Println(tokens)
-			if len(tokens) >= 8 {
-				ftype := "file"
-				if strings.HasPrefix(tokens[0], "d") {
-					ftype = "dir"
-				}
-				results = append(results, models.ListDirEntry{tokens[7], tokens[0], tokens[4], tokens[5] + " " + tokens[6] + ":00", ftype})
+
+			rights := tokens[0]
+			if strings.HasPrefix(rights, "l") {
+				rights = strings.Replace(rights, "l", "-", 1)
 			}
+			if strings.HasSuffix(rights, "t") {
+				rights = strings.Replace(rights, "t", "-", 1)
+			}
+
+			results = append(results, models.ListDirEntry{Name: tokens[7], Rights: rights, Size: tokens[4], Date: tokens[5] + " " + tokens[6] + ":00", Type: ftype})
 		}
 	}
 	return results

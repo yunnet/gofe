@@ -6,27 +6,23 @@
   <meta charset="utf-8">
   <title>gofe</title>
 
-  <script src="../static/jquery/3.5.1/jquery-3.5.1.js"></script>
-  <script src="../static/angular/1.8.2/angular.js"></script>
-<!--  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>-->
-
+  <script src="../static/jquery/dist/jquery.js"></script> <!-- 注意jquery和angular的先后顺序 -->
+  <script src="../static/angular/angular.js"></script>
   <script src="../static/angular-route/angular-route.js"></script>
   <script src="../static/angular-translate/angular-translate.js"></script>
   <script src="../static/ng-file-upload/ng-file-upload.js"></script>
   <script src="../static/bootstrap/dist/js/bootstrap.min.js"></script>
   <link href="../static/bootswatch/paper/bootstrap.min.css" rel="stylesheet">
 
-  <link href="../static/angular-filemanager.css" rel="stylesheet">
+  <link href="../static/angular-filemanager.min.css" rel="stylesheet">
   <script src="../static/angular-filemanager.js"></script>
 
   <script type="text/javascript">
-    angular.module('FileManagerApp').config(['fileManagerConfigProvider', function (config) {
-      angular.lowercase = angular.$$lowercase;
-      angular.uppercase = angular.$$uppercase;
-
+    angular.module('FileManagerApp', []).config(['fileManagerConfig', function (config) {
       var defaults = config.$get();
       config.set({
         appName: 'User: {{.User}}',
+        listUrl: 'list',
         uploadUrl: "/api/upload",
         downloadFileUrl: "/api/download",
         allowedActions: angular.extend(defaults.allowedActions, {
@@ -54,6 +50,10 @@
 </head>
 
 <body class="ng-cloak">
+<!--<body>-->
+<div>
+  <h1>Hello world!</h1>
+</div>
   <angular-filemanager></angular-filemanager>
 </body>
 

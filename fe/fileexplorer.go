@@ -1,9 +1,8 @@
 package fe
 
 import (
+	"gofe/models"
 	"mime/multipart"
-
-	"github.com/md2k/gofe/models"
 )
 
 type FileExplorer interface {
@@ -16,5 +15,6 @@ type FileExplorer interface {
 	Chmod(path []string, code string, recursive bool) (err error)
 	Mkdir(path string) error
 	UploadFile(destination string, part *multipart.Part) (err error)
+	DownloadFile(srcPath string) ([]byte, error)
 	Close() error
 }
