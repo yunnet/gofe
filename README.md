@@ -1,5 +1,5 @@
 ## gofe - Go File Explorer
-A golang backend for angular-filemanager - https://github.com/joni2back/angular-filemanager
+A golang backend for angular-filemanager - https://github.com/yunnet/angular-filemanager
 
 ### Todo
 ##### [API](https://github.com/joni2back/angular-filemanager/blob/master/API.md)
