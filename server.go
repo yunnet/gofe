@@ -19,8 +19,7 @@ import (
 	"time"
 )
 
-var DEFAULT_API_ERROR_RESPONSE = models.GenericResp{Result: models.GenericRespBody{Success: false, Error: "Not Supported by current backend."},
-}
+var DEFAULT_API_ERROR_RESPONSE = models.GenericResp{Result: models.GenericRespBody{Success: false, Error: "Not Supported by current backend."}}
 
 type SessionInfo struct {
 	User         string
@@ -56,7 +55,7 @@ func Start() {
 	m.Use(Contexter())
 
 	m.Post("/api/_", binding.Bind(models.GenericReq{}), apiHandler)
-	m.Post("/bridges/php/handler.php", binding.Bind(models.GenericReq{}), apiHandler)
+	m.Post("/api/list", binding.Bind(models.GenericReq{}), apiHandler)
 	m.Get("/", homeHandler)
 	m.Get("/login", loginHandler)
 	m.Get("/api/download", downloadHandler)
@@ -151,8 +150,7 @@ func uploadHandler(c *macaron.Context, req *http.Request, s SessionInfo) {
 	if req.Method == "POST" {
 		reader, err := req.MultipartReader()
 		if err != nil {
-			c.JSON(200, models.GenericResp{Result: models.GenericRespBody{Success: false, Error: err.Error()},
-			})
+			c.JSON(200, models.GenericResp{Result: models.GenericRespBody{Success: false, Error: err.Error()}})
 		}
 		destination := ""
 		for {
@@ -177,8 +175,7 @@ func uploadHandler(c *macaron.Context, req *http.Request, s SessionInfo) {
 
 			err = s.FileExplorer.UploadFile(destination, part)
 			if err != nil {
-				c.JSON(200, models.GenericResp{Result: models.GenericRespBody{Success: false, Error: err.Error()},
-				})
+				c.JSON(200, models.GenericResp{Result: models.GenericRespBody{Success: false, Error: err.Error()}})
 			}
 		}
 		ApiSuccessResponse(c, "")
