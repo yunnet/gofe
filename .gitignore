@@ -26,6 +26,8 @@ _testmain.go
 .project
 gofe*
 main
-static/
 tmp/
+
+dist/
+.idea/
 
