@@ -15,6 +15,7 @@ import (
 	"log"
 	"net/http"
 	"path"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -54,10 +55,10 @@ func Start() {
 	m.Use(macaron.Renderer())
 	m.Use(Contexter())
 
-	m.Post("/api/_", binding.Bind(models.GenericReq{}), apiHandler)
-	m.Post("/api/list", binding.Bind(models.GenericReq{}), apiHandler)
 	m.Get("/", homeHandler)
 	m.Get("/login", loginHandler)
+	m.Post("/api/list", binding.Bind(models.GenericReq{}), apiHandler)
+	m.Post("/api/_", binding.Bind(models.GenericReq{}), apiHandler)
 	m.Get("/api/download", downloadHandler)
 	m.Post("/api/upload", uploadHandler)
 
@@ -67,10 +68,12 @@ func Start() {
 			m.Run(bind[0])
 		}
 		if len(bind) == 2 {
-			m.Run(bind[0], bind[1])
+			port, _ := strconv.Atoi(bind[1])
+			m.Run(bind[0], port)
 		}
 	} else if settings.Server.Type == "https" {
-		log.Fatal(http.ListenAndServeTLS(settings.Server.Bind, settings.Server.SSLCert, settings.Server.SSLKey, m))
+		err := http.ListenAndServeTLS(settings.Server.Bind, settings.Server.SSLCert, settings.Server.SSLKey, m)
+		log.Fatal(err)
 	}
 }
 
@@ -161,7 +164,11 @@ func uploadHandler(c *macaron.Context, req *http.Request, s SessionInfo) {
 
 			if part.FormName() == "destination" {
 				buf := new(bytes.Buffer)
-				buf.ReadFrom(part)
+				_, err := buf.ReadFrom(part)
+				if err != nil {
+					c.JSON(200, models.GenericResp{Result: models.GenericRespBody{Success: false, Error: err.Error()}})
+					break
+				}
 				destination = buf.String()
 			}
 
@@ -207,10 +214,10 @@ func downloadHandler(c *macaron.Context, req *http.Request, s SessionInfo) {
 }
 
 func Contexter() macaron.Handler {
-	return func(c *macaron.Context, cache cache.Cache, session session.Store, f *session.Flash) {
+	return func(c *macaron.Context, cache cache.Cache, s session.Store, f *session.Flash) {
 		isSigned := false
 		sessionInfo := SessionInfo{}
-		uid := session.Get("uid")
+		uid := s.Get("uid")
 
 		if uid == nil {
 			isSigned = false
@@ -227,8 +234,8 @@ func Contexter() macaron.Handler {
 					c.Data["User"] = sessionInfo.User
 					c.Map(sessionInfo)
 					if sessionInfo.FileExplorer == nil {
-						fe, err := BackendConnect(sessionInfo.User, sessionInfo.Password)
-						sessionInfo.FileExplorer = fe
+						fex, err := BackendConnect(sessionInfo.User, sessionInfo.Password)
+						sessionInfo.FileExplorer = fex
 						if err != nil {
 							isSigned = false
 							if IsApiPath(c.Req.URL.Path) {
@@ -254,7 +261,7 @@ func Contexter() macaron.Handler {
 						uid := username // TODO: ??
 						sessionInfo = SessionInfo{username, password, fex, uid}
 						cache.Put(uid, sessionInfo, 100000000000)
-						session.Set("uid", uid)
+						s.Set("uid", uid)
 						c.Data["User"] = sessionInfo.User
 						c.Map(sessionInfo)
 						c.Redirect("/")
@@ -266,7 +273,7 @@ func Contexter() macaron.Handler {
 		} else {
 			if strings.HasPrefix(c.Req.URL.Path, "/logout") {
 				sessionInfo.FileExplorer.Close()
-				session.Delete("uid")
+				s.Delete("uid")
 				cache.Delete(uid.(string))
 				c.SetCookie("MacaronSession", "")
 				c.Redirect("/login")
