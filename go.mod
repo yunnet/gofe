@@ -8,8 +8,8 @@ require (
 	github.com/go-macaron/session v1.0.2
 	github.com/martini-contrib/cors v0.0.0-20141016003011-553b9208d353
 	github.com/pkg/sftp v1.13.4
-	golang.org/x/crypto v0.0.0-20220517005047-85d78b3ac167
-	gopkg.in/ini.v1 v1.66.4
+	golang.org/x/crypto v0.0.0-20220525230936-793ad666bf5e
+	gopkg.in/ini.v1 v1.66.5
 	gopkg.in/macaron.v1 v1.4.0
 )
 
@@ -19,6 +19,6 @@ require (
 	github.com/go-martini/martini v0.0.0-20170121215854-22fa46961aab // indirect
 	github.com/kr/fs v0.1.0 // indirect
 	github.com/unknwon/com v1.0.1 // indirect
-	golang.org/x/sys v0.0.0-20210615035016-665e8c7367d1 // indirect
-	gopkg.in/yaml.v3 v3.0.0-20210105161348-2e78108cf5f8 // indirect
+	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

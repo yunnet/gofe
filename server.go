@@ -57,7 +57,7 @@ func Start() {
 
 	m.Get("/", homeHandler)
 	m.Get("/login", loginHandler)
-	m.Post("/api/list", binding.Bind(models.GenericReq{}), apiHandler)
+	m.Post("/api/handler", binding.Bind(models.GenericReq{}), apiHandler)
 	m.Post("/api/_", binding.Bind(models.GenericReq{}), apiHandler)
 	m.Get("/api/download", downloadHandler)
 	m.Post("/api/upload", uploadHandler)
@@ -299,11 +299,11 @@ func ApiErrorResponse(c *macaron.Context, code int, obj interface{}) {
 	} else {
 		message = obj.(string)
 	}
-	c.JSON(code, models.GenericResp{models.GenericRespBody{false, message}})
+	c.JSON(code, models.GenericResp{Result: models.GenericRespBody{Success: false, Error: message}})
 }
 
 func ApiSuccessResponse(c *macaron.Context, message string) {
-	c.JSON(200, models.GenericResp{models.GenericRespBody{true, message}})
+	c.JSON(200, models.GenericResp{Result: models.GenericRespBody{Success: true, Error: message}})
 }
 
 func AuthError(c *macaron.Context, f *session.Flash, err error) {

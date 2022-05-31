@@ -15,8 +15,8 @@
   <script src="../static/bootstrap/dist/js/bootstrap.min.js"></script>
   <link href="../static/bootswatch/paper/bootstrap.min.css" rel="stylesheet">
 
-  <link href="../static/angular-filemanager.min.css" rel="stylesheet">
-  <script src="../static/angular-filemanager.min.js"></script>
+  <link href="../static/angular-explorer.min.css" rel="stylesheet">
+  <script src="../static/angular-explorer.min.js"></script>
 
   <script type="text/javascript">
     angular.module('FileManagerApp').config(['fileManagerConfigProvider', function (config) {
@@ -26,9 +26,6 @@
       var defaults = config.$get();
       config.set({
         appName: 'User: {{.User}}',
-        listUrl: "/api/list",
-        uploadUrl: "/api/upload",
-        downloadFileUrl: "/api/download",
         allowedActions: angular.extend(defaults.allowedActions, {
           upload: true,
           rename: true,
@@ -54,7 +51,7 @@
 </head>
 
 <body class="ng-cloak">
-  <angular-filemanager></angular-filemanager>
+  <angular-explorer></angular-explorer>
 </body>
 
 </html>
