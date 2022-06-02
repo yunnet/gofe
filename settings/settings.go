@@ -7,10 +7,6 @@ import (
 )
 
 var (
-	Backend struct {
-		Type string
-		Host string
-	}
 	Server struct {
 		Type        string
 		Bind        string
@@ -30,12 +26,7 @@ func Load() {
 
 	// Global Section
 	global := Cfg.Section("")
-	Backend.Type = global.Key("BACKEND").MustString("ssh")
 	Server.Type = global.Key("SERVER").MustString("http")
-
-	// Backend Section
-	backend := Cfg.Section("backend." + Backend.Type)
-	Backend.Host = backend.Key("HOST").MustString("localhost:22")
 
 	// Server Section
 	server := Cfg.Section("server." + Server.Type)

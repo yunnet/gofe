@@ -25,6 +25,7 @@ var DEFAULT_API_ERROR_RESPONSE = models.GenericResp{Result: models.GenericRespBo
 type SessionInfo struct {
 	User         string
 	Password     string
+	host         string
 	FileExplorer fe.FileExplorer
 	Uid          string
 }
@@ -234,7 +235,7 @@ func Contexter() macaron.Handler {
 					c.Data["User"] = sessionInfo.User
 					c.Map(sessionInfo)
 					if sessionInfo.FileExplorer == nil {
-						fex, err := BackendConnect(sessionInfo.User, sessionInfo.Password)
+						fex, err := BackendConnect(sessionInfo.User, sessionInfo.Password, sessionInfo.host)
 						sessionInfo.FileExplorer = fex
 						if err != nil {
 							isSigned = false
@@ -254,12 +255,13 @@ func Contexter() macaron.Handler {
 				if c.Req.Method == "POST" {
 					username := c.Query("username")
 					password := c.Query("password")
-					fex, err := BackendConnect(username, password)
+					host := c.Query("host")
+					fex, err := BackendConnect(username, password, host)
 					if err != nil {
 						AuthError(c, f, err)
 					} else {
 						uid := username // TODO: ??
-						sessionInfo = SessionInfo{username, password, fex, uid}
+						sessionInfo = SessionInfo{username, password, host, fex, uid}
 						cache.Put(uid, sessionInfo, 100000000000)
 						s.Set("uid", uid)
 						c.Data["User"] = sessionInfo.User
@@ -282,8 +284,8 @@ func Contexter() macaron.Handler {
 	}
 }
 
-func BackendConnect(username string, password string) (fe.FileExplorer, error) {
-	fex := fe.NewSSHFileExplorer(settings.Backend.Host, username, password)
+func BackendConnect(username string, password string, host string) (fe.FileExplorer, error) {
+	fex := fe.NewSSHFileExplorer(host, username, password)
 	err := fex.Init()
 	if err == nil {
 		return fex, nil
