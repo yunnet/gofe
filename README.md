@@ -1,5 +1,5 @@
 ## gofe - Go File Explorer
-A golang backend for angular-filemanager - https://github.com/yunnet/angular-filemanager
+A golang backend for angular-explorer - https://github.com/yunnet/angular-explorer
 
 ### Todo
 ##### [API](https://github.com/joni2back/angular-filemanager/blob/master/API.md)
@@ -29,13 +29,10 @@ A golang backend for angular-filemanager - https://github.com/yunnet/angular-fil
 
 ### Sample Config
 ```ini
-BACKEND = ssh
 SERVER = http
 
 [server.http]
 BIND = localhost:4000
 STATICS = angular-filemanager/bower_components,angular-filemanager/dist,angular-filemanager/src
 
-[backend.ssh]
-HOST = localhost:22
 ```
